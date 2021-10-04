@@ -20,6 +20,12 @@ variable "eventstore_peering" {
   }
 }
 
+variable "eventstore_connection_string" {
+  description = "Connection string for the EventStore db."
+  type        = string
+  default     = "esdb://c5alb55o0aem0po049fg.mesdb.eventstore.cloud:2113"
+}
+
 variable "map_accounts" {
   description = "Additional AWS account numbers to add to the aws-auth configmap."
   type        = list(string)

@@ -14,12 +14,6 @@ provider "aws" {
   region = var.region
 }
 
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
-  token                  = data.aws_eks_cluster_auth.cluster.token
-  #load_config_file       = false
-}
 
 ####################################################################################
 # Provider - AWS
@@ -143,91 +137,4 @@ module "eks" {
   map_roles                            = var.map_roles
   map_users                            = var.map_users
   map_accounts                         = var.map_accounts
-}
-
-####################################################################################
-# Provider - Kubernetes
-####################################################################################
-
-# Equivalent to:
-# kubectl create secret docker-registry my-secret --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD
-# https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret#example-usage-docker-config
-resource "kubernetes_secret" "container_registry" {
-  metadata {
-    name = "docker-cfg" # name of the secret as specified by "my-secret" in the command line above
-  }
-
-  data = {
-    ".dockerconfigjson" = <<DOCKER
-{
-  "auths": {
-    "${var.container_registry.host}": {
-      "auth": "${base64encode("${var.container_registry.username}:${var.container_registry.password}")}"
-    }
-  }
-}
-DOCKER
-  }
-
-  type = "kubernetes.io/dockerconfigjson"
-}
-
-resource "kubernetes_deployment" "signalserver" {
-  metadata {
-    name = "signalserver"
-    labels = {
-      app = "signalserver"
-    }
-  }
-  spec {
-    replicas = 1
-    selector {
-      match_labels = {
-        app = "signalserver"
-      }
-    }
-    template {
-      metadata {
-        labels = {
-          app = "signalserver"
-        }
-      }
-      spec {
-        image_pull_secrets {
-          name = "docker-cfg"
-        }
-        container {
-          image = "ghcr.io/fastfintech/signalserver:latest"
-          name  = "signalserver"
-          #          resources {
-          #            limits = {
-          #              cpu    = "0.5"
-          #              memory = "512Mi"
-          #            }
-          #            requests = {
-          #              cpu    = "250m"
-          #              memory = "50Mi"
-          #            }
-          #          }
-        }
-      }
-    }
-  }
-}
-
-
-resource "kubernetes_service" "signalserver" {
-  metadata {
-    name = "signalserver"
-  }
-  spec {
-    selector = {
-      app = "signalserver"
-    }
-    port {
-      port        = 80
-      target_port = 80
-    }
-    type = "LoadBalancer"
-  }
 }

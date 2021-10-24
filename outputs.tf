@@ -22,3 +22,11 @@ output "region" {
   description = "AWS region"
   value       = var.region
 }
+
+output "eventstore_connectionstring" {
+  value = local.eventstore_connection_string
+}
+
+output "redis_connection_string" {
+  value = local.redis_connection_string
+}

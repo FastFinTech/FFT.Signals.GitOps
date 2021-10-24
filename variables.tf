@@ -3,22 +3,17 @@ variable "region" {
   description = "AWS region"
 }
 
-variable "cluster_name" {
-  description = "Name of the EKS master nodes (control plane) cluster."
-  default     = "eks-signals"
-}
-
-variable "eventstore_peering" {
-  description = "Values describing the network peering connection for the eventstore cloud database."
-  type = object({
-    vpc_peering_connection_id = string
-    destination_cidr_block    = string
-  })
-  default = {
-    vpc_peering_connection_id = "pcx-0cd9271fe520fc5c5"
-    destination_cidr_block    = "172.29.98.0/24"
-  }
-}
+#variable "eventstore_peering" {
+#  description = "Values describing the network peering connection for the eventstore cloud database."
+#  type = object({
+#    vpc_peering_connection_id = string
+#    destination_cidr_block    = string
+#  })
+#  default = {
+#    vpc_peering_connection_id = "pcx-0cd9271fe520fc5c5"
+#    destination_cidr_block    = "172.29.98.0/24"
+#  }
+#}
 
 variable "eventstore_connection_string" {
   description = "Connection string for the EventStore db."

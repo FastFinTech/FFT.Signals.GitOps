@@ -19,7 +19,7 @@ module "redis" {
   # (Not available for T1/T2 instances)
   automatic_failover_enabled = false
 
-  #engine_version             = var.engine_version #default "4.0.10"
+  #engine_version             = var.engine_version # default "4.0.10"
   #family                     = var.family #default "redis4.0"
   #at_rest_encryption_enabled = false # default is false
 
@@ -41,13 +41,20 @@ module "redis" {
       description              = "Allow all outbound traffic"
     },
     {
-      type                     = "ingress"
-      from_port                = 0
-      to_port                  = 65535
-      protocol                 = "-1"
-      cidr_blocks              = []
-      source_security_group_id = aws_security_group.worker_group_mgmt_one.id
-      description              = "Allow all inbound traffic from trusted Security Groups"
+      type      = "ingress"
+      from_port = 0
+      to_port   = 65535
+      protocol  = "-1"
+
+      # TODO: remove this and use the commented-out version below
+      # open up incoming firewall for now to try and get containers connecting
+      cidr_blocks              = ["0.0.0.0/0"]
+      source_security_group_id = null
+
+
+      #      cidr_blocks              = []
+      #      source_security_group_id = aws_security_group.worker_group_mgmt_one.id
+      description = "Allow all inbound traffic from trusted Security Groups"
     },
   ]
 
@@ -57,4 +64,8 @@ module "redis" {
       value = "lK"
     }
   ]
+}
+
+locals {
+  redis_connection_string = "${module.redis.endpoint}:${module.redis.port}"
 }

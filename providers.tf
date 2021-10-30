@@ -3,7 +3,6 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  #config_path = "/root/.kube/config"
     host                   = data.aws_eks_cluster.signals.endpoint
     token                  = data.aws_eks_cluster_auth.signals.token
     cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)

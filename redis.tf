@@ -48,7 +48,7 @@ module "redis" {
 
       # TODO: remove this and use the commented-out version below
       # open up incoming firewall for now to try and get containers connecting
-      cidr_blocks              = ["0.0.0.0/0"]
+      cidr_blocks              = ["0.0.0.0/0", "::/0"]
       source_security_group_id = null
 
 

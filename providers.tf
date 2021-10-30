@@ -3,9 +3,9 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-    host                   = data.aws_eks_cluster.signals.endpoint
-    token                  = data.aws_eks_cluster_auth.signals.token
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)
+  host                   = data.aws_eks_cluster.signals.endpoint
+  token                  = data.aws_eks_cluster_auth.signals.token
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)
 }
 
 provider "eventstorecloud" {

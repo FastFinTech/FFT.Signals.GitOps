@@ -50,7 +50,7 @@ resource "kubernetes_deployment" "signalserver" {
           name  = "signalserver"
           env {
             name  = "EventStore__ConnectionString"
-            value = local.eventstore_connection_string 
+            value = local.eventstore_connection_string
           }
           env {
             name  = "Redis__ConnectionString"

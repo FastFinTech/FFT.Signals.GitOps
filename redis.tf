@@ -11,7 +11,7 @@ module "redis" {
   availability_zones = data.aws_availability_zones.available.names
   stage              = "staging" # or production, etc
   vpc_id             = module.vpc.vpc_id
-  subnets            = module.vpc.private_subnets
+  subnets            = module.vpc.public_subnets # TODO: Change back to private subnets
   cluster_size       = 1
   instance_type      = "cache.t2.micro"
   apply_immediately  = true
@@ -46,14 +46,10 @@ module "redis" {
       to_port   = 65535
       protocol  = "-1"
 
-      # TODO: remove this and use the commented-out version below
-      # open up incoming firewall for now to try and get containers connecting
-      cidr_blocks              = ["0.0.0.0/0", "::/0"]
-      source_security_group_id = null
+      cidr_blocks              = []
+      source_security_group_id = aws_security_group.worker_group_mgmt_one.id
 
 
-      #      cidr_blocks              = []
-      #      source_security_group_id = aws_security_group.worker_group_mgmt_one.id
       description = "Allow all inbound traffic from trusted Security Groups"
     },
   ]

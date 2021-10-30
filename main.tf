@@ -13,7 +13,7 @@ terraform {
     }
   }
   backend "remote" {
-    hostname = "app.terraform.io"
+    hostname     = "app.terraform.io"
     organization = "FastFinTech"
     workspaces {
       name = "FFT-Signals"

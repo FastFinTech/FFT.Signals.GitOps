@@ -25,10 +25,10 @@ output "aws_region" {
 
 output "eventstore_connectionstring" {
   description = "Connection string to the EventStore DB"
-  value = local.eventstore_connection_string
+  value       = local.eventstore_connection_string
 }
 
 output "redis_connection_string" {
   description = "Connection string to the Redis DB"
-  value = local.redis_connection_string
+  value       = local.redis_connection_string
 }

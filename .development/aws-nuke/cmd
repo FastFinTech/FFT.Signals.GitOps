@@ -1,0 +1,7 @@
+docker run \
+    --rm -it \
+    -v config.yml:/home/aws-nuke/config.yml \
+    -v ~/.aws:/home/aws-nuke/.aws \
+    quay.io/rebuy/aws-nuke \
+    --profile default \
+    --config /home/aws-nuke/config.yml

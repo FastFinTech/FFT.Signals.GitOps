@@ -13,7 +13,7 @@ resource "eventstorecloud_network" "signals" {
   name              = "FFT.Signals"
   project_id        = eventstorecloud_project.signals.id
   resource_provider = "aws"
-  region            = var.region
+  region            = var.aws_region
   cidr_block        = "172.29.98.0/24"
 }
 

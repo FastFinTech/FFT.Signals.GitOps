@@ -20,7 +20,7 @@ output "config_map_aws_auth" {
 
 output "aws_region" {
   description = "AWS region"
-  value       = var.region
+  value       = var.aws_region
 }
 
 output "eventstore_connectionstring" {

@@ -1,24 +1,6 @@
-variable "region" {
+variable "aws_region" {
   default     = "us-east-2"
   description = "AWS region"
-}
-
-#variable "eventstore_peering" {
-#  description = "Values describing the network peering connection for the eventstore cloud database."
-#  type = object({
-#    vpc_peering_connection_id = string
-#    destination_cidr_block    = string
-#  })
-#  default = {
-#    vpc_peering_connection_id = "pcx-0cd9271fe520fc5c5"
-#    destination_cidr_block    = "172.29.98.0/24"
-#  }
-#}
-
-variable "eventstore_connection_string" {
-  description = "Connection string for the EventStore db."
-  type        = string
-  default     = "esdb://c5alb55o0aem0po049fg.mesdb.eventstore.cloud:2113"
 }
 
 variable "map_accounts" {

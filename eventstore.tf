@@ -41,8 +41,8 @@ resource "eventstorecloud_peering" "signals" {
   peer_network_region    = eventstorecloud_network.signals.region
 
   peer_account_id = data.aws_caller_identity.current.account_id
-  peer_network_id = module.vpc.vpc_id
-  routes          = toset([module.vpc.vpc_cidr_block])
+  peer_network_id = aws_vpc.signals.id
+  routes          = toset([aws_vpc.signals.cidr_block])
 }
 
 # In AWS, accept the network peering request from EventStoreCloud
@@ -56,7 +56,7 @@ resource "aws_vpc_peering_connection_accepter" "eventstore" {
 
 # In AWS, add routes to the EventStore network for all the public subnets
 resource "aws_route" "eventstore-public" {
-  for_each                  = toset(module.vpc.public_route_table_ids)
+  for_each                  = toset(local.public_route_table_ids)
   route_table_id            = each.key
   destination_cidr_block    = eventstorecloud_network.signals.cidr_block
   vpc_peering_connection_id = eventstorecloud_peering.signals.provider_metadata.aws_peering_link_id
@@ -64,12 +64,8 @@ resource "aws_route" "eventstore-public" {
 
 # In AWS, add routes to the EventStore network for all the private subnets
 resource "aws_route" "eventstore-private" {
-  for_each                  = toset(module.vpc.private_route_table_ids)
+  for_each                  = toset(local.private_route_table_ids)
   route_table_id            = each.key
   destination_cidr_block    = eventstorecloud_network.signals.cidr_block
   vpc_peering_connection_id = eventstorecloud_peering.signals.provider_metadata.aws_peering_link_id
-}
-
-locals {
-  eventstore_connection_string = "esdb://${eventstorecloud_managed_cluster.signals.dns_name}:2113"
 }

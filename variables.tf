@@ -33,12 +33,12 @@ variable "map_users" {
   ]
 }
 
-variable "container_registry" {
-  description = "Contains information to pull docker container images."
-  type = object({
-    host     = string
-    username = string
-    password = string
-  })
-  #sensitive = true
-}
+#variable "container_registry" {
+#  description = "Contains information to pull docker container images."
+#  type = object({
+#    host     = string
+#    username = string
+#    password = string
+#  })
+#  #sensitive = true
+#}

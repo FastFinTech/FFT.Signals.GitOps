@@ -3,6 +3,14 @@ variable "aws_region" {
   description = "AWS region"
 }
 
+variable "ghcr_username" { 
+  description = "Github Container Repository username. Used in a kubernetes secret for pulling container images from ghcr.io" 
+}
+
+variable "ghcr_token"{
+  description = "Github Container Repository token. Used in a kubernetes secret for pulling container images from ghcr.io"
+}
+
 variable "map_accounts" {
   description = "Additional AWS account numbers to add to the aws-auth configmap."
   type        = list(string)

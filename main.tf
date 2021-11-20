@@ -1,5 +1,5 @@
 terraform {
-  required_version = "1.0.10"
+  required_version = "1.0.11"
   required_providers {
     aws = {
       version = "3.63.0"
@@ -10,6 +10,12 @@ terraform {
     eventstorecloud = {
       source  = "EventStore/eventstorecloud"
       version = "~>1.5.0"
+    }
+  }
+  backend "remote" {
+    organization = "FastFinTech"
+    workspaces {
+      name = "fft-signals"
     }
   }
 }
@@ -25,8 +31,6 @@ provider "kubernetes" {
 }
 
 provider "eventstorecloud" {
-  token           = "lruR-CmmEI5lBu-AGHJLCBQsYalkIwkvfVbAjg3rLVkaL"
-  organization_id = "c2iaa6do0aem35kk66t0" # FFT.Signals
 }
 
 data "aws_caller_identity" "current" {}
@@ -271,7 +275,7 @@ resource "kubernetes_secret" "ghcr" {
 {
   "auths": {
     "ghcr.io": {
-      "auth":"${base64encode("truegoodwill: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")}"
+      "auth":"${base64encode("${var.ghcr_username}:${var.ghcr_token}")}"
     }
   }
 }

@@ -38,32 +38,24 @@ data "aws_caller_identity" "current" {}
 data "aws_availability_zones" "available" {}
 
 data "aws_eks_cluster" "signals" {
-  name = module.eks.cluster_id
+  name = local.cluster_name
 }
 
 data "aws_eks_cluster_auth" "signals" {
-  name = module.eks.cluster_id
+  name = local.cluster_name
 }
 
-# data "aws_eks_cluster" "signals" {
-#   name = "signals"
-# }
-
-# data "aws_eks_cluster_auth" "signals" {
-#   name = "signals"
-# }
-
 locals {
-  cluster_name = "signals"
-  public_subnet_cidrs     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  private_subnet_cidrs    = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
-  num_subnets             = min(length(local.public_subnet_cidrs), length(data.aws_availability_zones.available.names))
+  cluster_name         = "signals"
+  public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  private_subnet_cidrs = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+  num_subnets          = min(length(local.public_subnet_cidrs), length(data.aws_availability_zones.available.names))
   # public_subnet_ids       = aws_subnet.signals_public.*.id
   # private_subnet_ids      = aws_subnet.signals_private.*.id
   # public_route_table_ids  = aws_route_table.signals_public.*.id
   # private_route_table_ids = aws_route_table.signals_private.*.id
   # redis_connection_string = "${aws_elasticache_cluster.signals.cache_nodes.0.address}:6379"
-  redis_connection_string = "${module.redis.elasticache_replication_group_primary_endpoint_address}:6379"
+  redis_connection_string      = "${module.redis.elasticache_replication_group_primary_endpoint_address}:6379"
   eventstore_connection_string = "esdb://${eventstorecloud_managed_cluster.signals.dns_name}:2113"
 }
 
@@ -96,7 +88,7 @@ module "vpc" {
 }
 
 module "redis" {
-  source = "umotif-public/elasticache-redis/aws"
+  source  = "umotif-public/elasticache-redis/aws"
   version = "~> 2.1.0"
 
   name_prefix           = "signals"
@@ -110,8 +102,8 @@ module "redis" {
   snapshot_retention_limit = 7
 
   # automatic_failover_enabled = true
-  # at_rest_encryption_enabled = true
-  # transit_encryption_enabled = true
+  at_rest_encryption_enabled = false
+  transit_encryption_enabled = false
   # auth_token                 = "1234567890asdfghjkl"
 
   apply_immediately = true
@@ -185,7 +177,7 @@ module "eks" {
   source          = "terraform-aws-modules/eks/aws"
   cluster_name    = local.cluster_name
   cluster_version = "1.20"
-  subnets         = module.vpc.private_subnets
+  subnets         = module.vpc.public_subnets # TODO: change back to private
 
   tags = {
   }
@@ -194,6 +186,8 @@ module "eks" {
 
   workers_group_defaults = {
     root_volume_type = "gp2"
+    public_ip        = true                      # TODO: remove
+    subnets          = module.vpc.public_subnets # TODO: remove
   }
 
   worker_groups = [
@@ -203,16 +197,9 @@ module "eks" {
       additional_userdata           = "echo foo bar"
       asg_desired_capacity          = 2
       additional_security_group_ids = [aws_security_group.worker_group_mgmt_one.id]
-      public_ip = true
-    },
-    {
-      name                          = "worker-group-2"
-      instance_type                 = "t2.medium"
-      additional_userdata           = "echo foo bar"
-      asg_desired_capacity          = 1
-      additional_security_group_ids = [aws_security_group.worker_group_mgmt_two.id]
-      public_ip = true
-    },
+      public_ip                     = true                      # TODO: remove
+      subnets                       = module.vpc.public_subnets # TODO: remove
+    }
   ]
 }
 
@@ -276,3 +263,43 @@ resource "kubernetes_deployment" "signalserver" {
   }
 }
 
+resource "kubernetes_service" "signalserver" {
+  metadata {
+    name = "signalserver"
+    labels = {
+      app = "signalserver"
+    }
+  }
+  spec {
+    selector = {
+      app = "signalserver"
+    }
+    port {
+      port        = 80
+      target_port = 80
+    }
+    type = "LoadBalancer"
+  }
+}
+
+# Create a local variable for the load balancer name.
+locals {
+  lb_name = split("-", split(".", kubernetes_service.signalserver.status.0.load_balancer.0.ingress.0.hostname).0).0
+}
+
+# Read information about the load balancer using the AWS provider.
+data "aws_elb" "signals" {
+  name = local.lb_name
+}
+
+output "load_balancer_name" {
+  value = local.lb_name
+}
+
+output "load_balancer_hostname" {
+  value = kubernetes_service.signalserver.status.0.load_balancer.0.ingress.0.hostname
+}
+
+output "load_balancer_info" {
+  value = data.aws_elb.signals
+}

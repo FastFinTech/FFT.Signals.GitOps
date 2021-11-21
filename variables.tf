@@ -3,11 +3,11 @@ variable "aws_region" {
   description = "AWS region"
 }
 
-variable "ghcr_username" { 
-  description = "Github Container Repository username. Used in a kubernetes secret for pulling container images from ghcr.io" 
+variable "ghcr_username" {
+  description = "Github Container Repository username. Used in a kubernetes secret for pulling container images from ghcr.io"
 }
 
-variable "ghcr_token"{
+variable "ghcr_token" {
   description = "Github Container Repository token. Used in a kubernetes secret for pulling container images from ghcr.io"
 }
 

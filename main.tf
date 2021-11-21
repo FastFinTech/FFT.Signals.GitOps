@@ -63,7 +63,8 @@ locals {
   # public_route_table_ids  = aws_route_table.signals_public.*.id
   # private_route_table_ids = aws_route_table.signals_private.*.id
   # redis_connection_string = "${aws_elasticache_cluster.signals.cache_nodes.0.address}:6379"
-  # eventstore_connection_string = "esdb://${eventstorecloud_managed_cluster.signals.dns_name}:2113"
+  redis_connection_string = "${module.redis.elasticache_replication_group_primary_endpoint_address}:6379"
+  eventstore_connection_string = "esdb://${eventstorecloud_managed_cluster.signals.dns_name}:2113"
 }
 
 module "vpc" {
@@ -91,6 +92,46 @@ module "vpc" {
   private_subnet_tags = {
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
     "kubernetes.io/role/internal-elb"             = "1"
+  }
+}
+
+module "redis" {
+  source = "umotif-public/elasticache-redis/aws"
+  version = "~> 2.1.0"
+
+  name_prefix           = "signals"
+  number_cache_clusters = 1
+  node_type             = "cache.t3.small"
+
+  engine_version           = "6.x"
+  port                     = 6379
+  maintenance_window       = "mon:03:00-mon:04:00"
+  snapshot_window          = "04:00-06:00"
+  snapshot_retention_limit = 7
+
+  # automatic_failover_enabled = true
+  # at_rest_encryption_enabled = true
+  # transit_encryption_enabled = true
+  # auth_token                 = "1234567890asdfghjkl"
+
+  apply_immediately = true
+  family            = "redis6.x"
+  description       = "Signals elasticache redis."
+
+  subnet_ids = module.vpc.private_subnets
+  vpc_id     = module.vpc.vpc_id
+
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+
+  parameter = [
+    {
+      name  = "repl-backlog-size"
+      value = "16384"
+    }
+  ]
+
+  tags = {
+    Project = "Test"
   }
 }
 
@@ -381,63 +422,63 @@ module "eks" {
 #   ]
 # }
 
-# resource "kubernetes_secret" "ghcr" {
-#   type = "kubernetes.io/dockerconfigjson"
-#   metadata {
-#     name = "ghcr" # name of the secret as specified by "my-secret" in the command line above
-#   }
+resource "kubernetes_secret" "ghcr" {
+  type = "kubernetes.io/dockerconfigjson"
+  metadata {
+    name = "ghcr" # name of the secret as specified by "my-secret" in the command line above
+  }
 
-#   data = {
-#     ".dockerconfigjson" = <<DOCKER
-# {
-#   "auths": {
-#     "ghcr.io": {
-#       "auth":"${base64encode("${var.ghcr_username}:${var.ghcr_token}")}"
-#     }
-#   }
-# }
-# DOCKER
-#   }
-# }
+  data = {
+    ".dockerconfigjson" = <<DOCKER
+{
+  "auths": {
+    "ghcr.io": {
+      "auth":"${base64encode("${var.ghcr_username}:${var.ghcr_token}")}"
+    }
+  }
+}
+DOCKER
+  }
+}
 
-# resource "kubernetes_deployment" "signalserver" {
-#   metadata {
-#     name = "signalserver"
-#     labels = {
-#       app = "signalserver"
-#     }
-#   }
-#   spec {
-#     replicas = 1
-#     selector {
-#       match_labels = {
-#         app = "signalserver"
-#       }
-#     }
-#     template {
-#       metadata {
-#         labels = {
-#           app = "signalserver"
-#         }
-#       }
-#       spec {
-#         image_pull_secrets {
-#           name = "ghcr"
-#         }
-#         container {
-#           image = "ghcr.io/fastfintech/signalserver:latest" # 'latest' tag also sets image_pull_policy = "Always"
-#           name  = "signalserver"
-#           env {
-#             name  = "EventStore__ConnectionString"
-#             value = local.eventstore_connection_string
-#           }
-#           env {
-#             name  = "Redis__ConnectionString"
-#             value = local.redis_connection_string
-#           }
-#         }
-#       }
-#     }
-#   }
-# }
+resource "kubernetes_deployment" "signalserver" {
+  metadata {
+    name = "signalserver"
+    labels = {
+      app = "signalserver"
+    }
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "signalserver"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "signalserver"
+        }
+      }
+      spec {
+        image_pull_secrets {
+          name = "ghcr"
+        }
+        container {
+          image = "ghcr.io/fastfintech/signalserver:latest" # 'latest' tag also sets image_pull_policy = "Always"
+          name  = "signalserver"
+          env {
+            name  = "EventStore__ConnectionString"
+            value = local.eventstore_connection_string
+          }
+          env {
+            name  = "Redis__ConnectionString"
+            value = local.redis_connection_string
+          }
+        }
+      }
+    }
+  }
+}
 

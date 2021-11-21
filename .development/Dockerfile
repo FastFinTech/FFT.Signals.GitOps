@@ -4,7 +4,7 @@ FROM amazon/aws-cli:2.0.43
 RUN yum install -y jq gzip nano tar git unzip wget
 
 # install terraform and kubectl
-RUN curl -o /tmp/terraform.zip -LO https://releases.hashicorp.com/terraform/1.0.10/terraform_1.0.10_linux_amd64.zip \
+RUN curl -o /tmp/terraform.zip -LO https://releases.hashicorp.com/terraform/1.0.11/terraform_1.0.11_linux_amd64.zip \
     && unzip /tmp/terraform.zip \
     && chmod +x terraform \
     && mv terraform /usr/local/bin/ \

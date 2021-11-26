@@ -11,6 +11,10 @@ terraform {
       source  = "EventStore/eventstorecloud"
       version = "~>1.5.0"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "2.4.1"
+    }
   }
   backend "remote" {
     organization = "FastFinTech"
@@ -25,19 +29,28 @@ provider "aws" {
 }
 
 provider "kubernetes" {
+  #alias = "eks"
   host                   = data.aws_eks_cluster.signals.endpoint
   token                  = data.aws_eks_cluster_auth.signals.token
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)
 }
 
-# provider "helm" {
-#   kubernetes {
-#   host                   = data.aws_eks_cluster.signals.endpoint
-#   token                  = data.aws_eks_cluster_auth.signals.token
-#   cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)
-# #    config_path = "~/.kube/config"
-#   }
-# }
+provider "helm" {
+  kubernetes {
+    host = data.aws_eks_cluster.signals.endpoint
+    # client_certificate = 
+    # client_key = 
+    #    config_path = "~/.kube/config"
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)
+    # TODO: See if this token setting will work so we can get rid of the exec.
+    #token                  = data.aws_eks_cluster_auth.signals.token
+    exec {
+      api_version = "client.authentication.k8s.io/v1alpha1"
+      args        = ["eks", "get-token", "--cluster-name", local.cluster_name]
+      command     = "aws"
+    }
+  }
+}
 
 provider "eventstorecloud" {
 }
@@ -184,14 +197,14 @@ resource "aws_security_group" "all_worker_mgmt" {
 
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
+  vpc_id          = module.vpc.vpc_id
   cluster_name    = local.cluster_name
   cluster_version = "1.20"
   subnets         = module.vpc.public_subnets # TODO: change back to private
-
+  enable_irsa     = true
   tags = {
   }
 
-  vpc_id = module.vpc.vpc_id
 
   workers_group_defaults = {
     root_volume_type = "gp2"
@@ -212,14 +225,50 @@ module "eks" {
   ]
 }
 
-# module "load_balancer_controller" {
-#   source  = "DNXLabs/eks-lb-controller/aws"
-#   version = "0.5.0"
-#   enabled = true
+# # Install an AWS ALB load balancer controller to handle ingresses with class "kubernetes.io/ingress.class" = "alb"
+# module "eks-lb-controller" {
+#   source                           = "DNXLabs/eks-lb-controller/aws"
+#   version                          = "0.5.0"
 #   cluster_identity_oidc_issuer     = module.eks.cluster_oidc_issuer_url
 #   cluster_identity_oidc_issuer_arn = module.eks.oidc_provider_arn
 #   cluster_name                     = module.eks.cluster_id
-#   depends_on = [module.eks]
+#   depends_on                       = [module.eks]
+# }
+
+# # Almost worked, but created an internal load balancer
+# module "alb_ingress_controller" {
+#   source  = "iplabs/alb-ingress-controller/kubernetes"
+#   version = "3.4.0"
+
+#   # providers = {
+#   #   kubernetes = "eks"
+#   # }
+
+#   k8s_cluster_type = "eks"
+#   k8s_namespace    = "kube-system"
+
+#   aws_region_name  = var.aws_region
+#   k8s_cluster_name = data.aws_eks_cluster.signals.name
+# }
+
+# # Seems out of date
+# module "alb-ingress" { # https://registry.terraform.io/modules/pbar1/alb-ingress/kubernetes/latest
+#   source        = "pbar1/alb-ingress/kubernetes"
+#   version       = "1.0.0"
+#   region        = var.aws_region
+#   vpc_id        = module.vpc.vpc_id
+#   cluster_name  = local.cluster_name
+#   namespace     = "default"
+#   ingress_class = "alb" # Ingress class name to respect for the annotation kubernetes.io/ingress.class:
+# }
+
+
+# module "eks-alb-ingress" { # does not support recent terraform versions
+#   source  = "lablabs/eks-alb-ingress/aws"
+#   version = "0.5.0"
+#   cluster_identity_oidc_issuer = ""
+#   cluster_identity_oidc_issuer_arn = ""
+#   cluster_name = local.cluster_name
 # }
 
 resource "kubernetes_secret" "ghcr" {
@@ -304,6 +353,10 @@ resource "kubernetes_service" "signalserver" {
 resource "kubernetes_ingress" "signalserver" {
   metadata {
     name = "signalserver-ingress"
+    annotations = {
+      "kubernetes.io/ingress.class" = "alb"
+      #"alb.ingress.kubernetes.io/group.name" = "my-group" # to share an alb with multiple ingressess
+    }
   }
   spec {
     backend {

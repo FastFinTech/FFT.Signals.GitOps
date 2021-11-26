@@ -5,7 +5,7 @@ terraform {
       version = "3.63.0"
     }
     kubernetes = {
-      version = "2.5.1"
+      version = "2.6.1"
     }
     eventstorecloud = {
       source  = "EventStore/eventstorecloud"
@@ -29,6 +29,15 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.signals.token
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)
 }
+
+# provider "helm" {
+#   kubernetes {
+#   host                   = data.aws_eks_cluster.signals.endpoint
+#   token                  = data.aws_eks_cluster_auth.signals.token
+#   cluster_ca_certificate = base64decode(data.aws_eks_cluster.signals.certificate_authority.0.data)
+# #    config_path = "~/.kube/config"
+#   }
+# }
 
 provider "eventstorecloud" {
 }
@@ -203,6 +212,16 @@ module "eks" {
   ]
 }
 
+# module "load_balancer_controller" {
+#   source  = "DNXLabs/eks-lb-controller/aws"
+#   version = "0.5.0"
+#   enabled = true
+#   cluster_identity_oidc_issuer     = module.eks.cluster_oidc_issuer_url
+#   cluster_identity_oidc_issuer_arn = module.eks.oidc_provider_arn
+#   cluster_name                     = module.eks.cluster_id
+#   depends_on = [module.eks]
+# }
+
 resource "kubernetes_secret" "ghcr" {
   type = "kubernetes.io/dockerconfigjson"
   metadata {
@@ -271,6 +290,7 @@ resource "kubernetes_service" "signalserver" {
     }
   }
   spec {
+    type = "ClusterIP"
     selector = {
       app = "signalserver"
     }
@@ -278,28 +298,51 @@ resource "kubernetes_service" "signalserver" {
       port        = 80
       target_port = 80
     }
-    type = "LoadBalancer"
   }
 }
 
-# Create a local variable for the load balancer name.
-locals {
-  lb_name = split("-", split(".", kubernetes_service.signalserver.status.0.load_balancer.0.ingress.0.hostname).0).0
+resource "kubernetes_ingress" "signalserver" {
+  metadata {
+    name = "signalserver-ingress"
+  }
+  spec {
+    backend {
+      service_name = kubernetes_service.signalserver.metadata.0.name
+      service_port = kubernetes_service.signalserver.spec.0.port.0.port
+    }
+    rule {
+      host = "tradesignalserver.com"
+      http {
+        path {
+          path = "/"
+          backend {
+            service_name = kubernetes_service.signalserver.metadata.0.name
+            service_port = kubernetes_service.signalserver.spec.0.port.0.port
+          }
+        }
+      }
+    }
+  }
 }
 
-# Read information about the load balancer using the AWS provider.
-data "aws_elb" "signals" {
-  name = local.lb_name
-}
+# # Create a local variable for the load balancer name.
+# locals {
+#   lb_name = split("-", split(".", kubernetes_service.signalserver.status.0.load_balancer.0.ingress.0.hostname).0).0
+# }
 
-output "load_balancer_name" {
-  value = local.lb_name
-}
+# # Read information about the load balancer using the AWS provider.
+# data "aws_elb" "signals" {
+#   name = local.lb_name
+# }
 
-output "load_balancer_hostname" {
-  value = kubernetes_service.signalserver.status.0.load_balancer.0.ingress.0.hostname
-}
+# output "load_balancer_name" {
+#   value = local.lb_name
+# }
 
-output "load_balancer_info" {
-  value = data.aws_elb.signals
-}
+# output "load_balancer_hostname" {
+#   value = kubernetes_service.signalserver.status.0.load_balancer.0.ingress.0.hostname
+# }
+
+# output "load_balancer_info" {
+#   value = data.aws_elb.signals
+# }

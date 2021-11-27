@@ -235,21 +235,23 @@ module "eks" {
 #   depends_on                       = [module.eks]
 # }
 
-# # Almost worked, but created an internal load balancer
-# module "alb_ingress_controller" {
-#   source  = "iplabs/alb-ingress-controller/kubernetes"
-#   version = "3.4.0"
+# Almost worked, but created an internal load balancer
+module "alb_ingress_controller" {
+  source  = "iplabs/alb-ingress-controller/kubernetes"
+  version = "3.4.0"
+  #enabled = "true"
 
-#   # providers = {
-#   #   kubernetes = "eks"
-#   # }
+  # providers = {
+  #   kubernetes = "eks"
+  # }
 
-#   k8s_cluster_type = "eks"
-#   k8s_namespace    = "kube-system"
+  k8s_cluster_type = "eks"
+  k8s_namespace    = "kube-system"
 
-#   aws_region_name  = var.aws_region
-#   k8s_cluster_name = data.aws_eks_cluster.signals.name
-# }
+  aws_region_name  = var.aws_region
+  k8s_cluster_name = local.cluster_name
+  aws_alb_ingress_controller_version ="2.3.0"
+}
 
 # # Seems out of date
 # module "alb-ingress" { # https://registry.terraform.io/modules/pbar1/alb-ingress/kubernetes/latest

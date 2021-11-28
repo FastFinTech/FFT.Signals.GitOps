@@ -12,3 +12,6 @@ RUN curl -o /tmp/terraform.zip -LO https://releases.hashicorp.com/terraform/1.0.
     && chmod +x ./kubectl \
     && mv ./kubectl /usr/local/bin/kubectl
 
+RUN yum install -y openssl
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+

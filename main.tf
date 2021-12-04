@@ -65,15 +65,15 @@ data "aws_caller_identity" "current" {}
 data "aws_availability_zones" "available" {}
 
 data "aws_eks_cluster" "signals" {
-  name = local.cluster_name
+  name = module.eks.cluster_id
 }
 
 data "aws_eks_cluster_auth" "signals" {
-  name = local.cluster_name
+  name = module.eks.cluster_id
 }
 
 locals {
-  kubernetes_version   = "1.20"
+  kubernetes_version   = "1.21"
   cluster_name         = "signals"
   public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   private_subnet_cidrs = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]

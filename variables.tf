@@ -3,12 +3,28 @@ variable "aws_region" {
   description = "AWS region"
 }
 
+variable "aws_access_key" {
+  description = "AWS access key"
+}
+
+variable "aws_secret_key" {
+  description = "AWS secret key"
+}
+
 variable "ghcr_username" {
   description = "Github Container Repository username. Used in a kubernetes secret for pulling container images from ghcr.io"
 }
 
 variable "ghcr_token" {
   description = "Github Container Repository token. Used in a kubernetes secret for pulling container images from ghcr.io"
+}
+
+variable "esc_org_id" {
+  description = "EventStore Cloud Organisation Id"
+}
+
+variable "esc_token" {
+  description = "EventStore Cloud Token"
 }
 
 variable "map_accounts" {

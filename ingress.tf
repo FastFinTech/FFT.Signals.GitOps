@@ -4,6 +4,15 @@ locals {
   issuer_name             = "letsencrypt"
 }
 
+# Adds the aws load balancer controller to kubernetes
+module "eks-lb-controller" {
+  source                           = "DNXLabs/eks-lb-controller/aws"
+  version                          = "0.5.0"
+  cluster_identity_oidc_issuer     = module.eks.cluster_oidc_issuer_url
+  cluster_identity_oidc_issuer_arn = module.eks.oidc_provider_arn
+  cluster_name                     = module.eks.cluster_id
+}
+
 module "cert-manager" {
   source  = "DNXLabs/eks-cert-manager/aws"
   version = "0.3.3"
@@ -35,8 +44,6 @@ module "cert-manager" {
   ]
 }
 
-
-
 resource "kubernetes_ingress" "nginx" {
   metadata {
     name = "nginx-ingress"
@@ -52,12 +59,16 @@ resource "kubernetes_ingress" "nginx" {
   }
   spec {
     tls {
-      hosts       = [local.host]
-      secret_name = local.certificate_secret_name
-    }
-    backend {
-      service_name = kubernetes_service.signalserver.metadata.0.name
-      service_port = kubernetes_service.signalserver.spec.0.port.0.port
+      host = local.host
+      http {
+        path {
+          path = "/"
+          backend {
+            service_name = kubernetes_service.signalserver.metadata.0.name
+            service_port = kubernetes_service.signalserver.spec.0.port.0.port
+          }
+        }
+      }
     }
   }
 }

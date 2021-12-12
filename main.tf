@@ -20,16 +20,18 @@ terraform {
       version = "2.4.1"
     }
   }
-  backend "remote" {
-    organization = "FastFinTech"
-    workspaces {
-      name = "fft-signals"
-    }
-  }
+  # backend "remote" {
+  #   organization = "FastFinTech"
+  #   workspaces {
+  #     name = "fft-signals"
+  #   }
+  # }
 }
 
 provider "aws" {
-  region = var.aws_region
+  region     = var.aws_region
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
 }
 
 provider "kubernetes" {
@@ -58,6 +60,8 @@ provider "helm" {
 }
 
 provider "eventstorecloud" {
+  organization_id = var.esc_org_id
+  token           = var.esc_token
 }
 
 data "aws_caller_identity" "current" {}

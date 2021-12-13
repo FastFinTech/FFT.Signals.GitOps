@@ -59,6 +59,10 @@ resource "kubernetes_ingress" "nginx" {
   }
   spec {
     tls {
+      hosts       = [local.host]
+      secret_name = local.certificate_secret_name
+    }
+    rule {
       host = local.host
       http {
         path {
